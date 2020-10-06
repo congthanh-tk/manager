@@ -136,7 +136,7 @@
                                 <th>{{ _('Tên') }}</th>
                                 <th>{{ _('TT HCC') }}</th>
                                 <th>{{ _('Thời gian vắng mặt tiếp dân trung bình') }}</th>
-                                <th>{{ _('Thao tác') }}</th>
+                                <!-- <th>{{ _('Thao tác') }}</th> -->
                             </tr>
                         </thead>
                         <tbody>
@@ -196,23 +196,23 @@
                    d.address = address;
                }
             },
-            "columnDefs": [
-                {
-                "targets": [ 3 ],
-                "render": function ( data, type, row ) {
-                    if(check){
-                        $('#total_avg').text(row[4]).show();
-                        check = false;
-                    }
-                    if(address){
-                        return `<td><a class="form-button-action btn btn-primary btn-lg" href="profile.html?id=${row[0]}#loginhistorytab"><i class="">{{ _('Xem chi tiết') }}</i></a></td>` ;
-                    }
-                    else
-                        return ;
-                    }
-                },
-            ],
-            "columns":[{"data":"1"},{"data":"2"},{"data":"3"},{"data":null,"defaultContent":"", "searchable":false,"orderable": false}],
+            // "columnDefs": [
+            //     {
+            //     "targets": [ 3 ],
+            //     "render": function ( data, type, row ) {
+            //         if(check){
+            //             $('#total_avg').text(row[4]).show();
+            //             check = false;
+            //         }
+            //         if(address){
+            //             return `<td><a class="form-button-action btn btn-primary btn-lg" href="profile.html?id=${row[0]}#loginhistorytab"><i class="">{{ _('Xem chi tiết') }}</i></a></td>` ;
+            //         }
+            //         else
+            //             return ;
+            //         }
+            //     },
+            // ],
+            "columns":[{"data":"1"},{"data":"2"},{"data":"3"}],
             "language": {
                 "decimal":        "",
                 "emptyTable":     "{{ _('Không có dữ liệu') }}",

@@ -96,6 +96,7 @@ def event_logs_data():
         ColumnDT(EventLogs.data),
         ColumnDT(User.id),
         ColumnDT(Cameras.ipaddr),
+        ColumnDT(EventLogs.event_id),
         ColumnDT(Cameras.udid),
     ]
     
