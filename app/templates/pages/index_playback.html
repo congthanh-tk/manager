@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<style>
+    .controls-bar{
+        position: fixed;
+        bottom: 0px;
+        width: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        padding: 10px;
+    }
+    .playBtn{
+        color: #fff;
+        font-size: 40px;
+        width: 40px;
+        line-height: 20px;
+        cursor: pointer;
+    }
+    .timePlay{
+        font-size: 12px;
+        color: #fff;
+        padding-left: 5px;
+        margin-top: -3px;
+    }
+    .slidecontainer {
+        width: 100%; /* Width of the outside container */
+        line-height: 15px;
+    }
+
+    /* The slider itself */
+    .slider {
+        -webkit-appearance: none;
+        appearance: none;
+        height: 5px;
+        background: #d3d3d3;
+        outline: none;
+        opacity: 0.7;
+        -webkit-transition: .2s;
+        transition: opacity .2s;
+        cursor: pointer;
+        width: 100%;
+    }
+
+    /* Mouse-over effects */
+    .slider:hover {
+        opacity: 1; /* Fully shown on mouse-over */
+    }
+
+    .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #4CAF50;
+        cursor: pointer;
+    }
+
+    .slider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #4CAF50;
+        cursor: pointer;
+    }
+    #streams-container {
+        cursor: pointer;
+    }
+
+</style>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/static/assets/css/bootstrap.min.css">
+        <link rel="stylesheet" type="text/css" href="/static/assets/css/playback.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    </head>
+    <body>
+       
+        <section id="streams-container" style="position: relative;"></section>
+        <section class="controls-bar">
+            <div class="controls">
+                <div class="row">
+                    <div class="col-sm-1"> 
+                        <div class="playBtn" data-playing="false">
+                            <i class="fa fa-play-circle-o"></i>
+                        </div>
+                    </div>
+                    <div class="col-sm-11">
+                        <div class="timePlay">
+                            <span>loading...</span>
+                        </div>
+                        <div class="slidecontainer ">
+                            <input type="range" min="0" max="30" value="0" class="slider" id="myRange">
+                        </div>
+                    </div>
+                    
+               </div>
+                <!-- <div class="time"></div> -->
+            </div>
+        </section>
+        <script src="/static/assets/js/core/bootstrap.min.js"></script>
+        <script src="/static/assets/js/core/jquery.3.2.1.min.js"></script>
+        <script src="/static/assets/js/sdkLoader.js"></script>
+        <script src="/static/assets/js/application.js"></script>
+        <script src="/static/assets/js/loginManager.js"></script>
+        <script src="/static/assets/js/playback.js"></script>
+        <script src="/static/assets/js/moment.min.js"></script>
+    </body>
+    <script>
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, '\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+        var playInterval;
+        function setPlay(){
+            $("#myRange").trigger("change");
+            playInterval = setInterval(function(){
+            
+            let timeRun = parseInt($("#myRange").val()) 
+            if(!videoPause){
+                timeRun += 1;
+                if(timeRun > 30){
+                    videoPause = true;
+                    playbackController.getControls().pause();
+                    $(".playBtn").html('<i class="fa fa-play-circle-o"></i>')
+                    clearInterval(interval)
+                }
+                else{
+                    $("#myRange").val(timeRun).trigger("change");
+                }
+            }
+        }, 1000);
+        }
+    </script>
+    <script>
+        const startTime = getParameterByName("start", window.location.href)
+        let time = parseInt(startTime)
+        let videoPause = true;
+        var slider = document.getElementById("myRange");
+        $(document).on('click', '#streams-container,.playBtn', function (e) {
+            let timeRun = parseInt(slider.value)
+            if(videoPause){
+                playbackController.getControls().play();
+                videoPause = false;
+                $(".playBtn").html('<i class="fa fa-pause-circle-o"></i>')
+                setPlay()
+            }
+            else{
+                playbackController.getControls().pause();
+                $(".playBtn").html('<i class="fa fa-play-circle-o"></i>')
+                videoPause = true;
+                clearInterval(playInterval)
+            }
+        })
+        
+        $(document).on('change', '#myRange', function(){
+            let timePlay = time + Number($(this).val()) * 1000;
+            $(".timePlay span").html(moment(timePlay).format("HH:mm:ss DD-MM-YYYY"));
+        })
+
+        // Update the current slider value (each time you drag the slider handle)
+        slider.oninput = function() {
+            let timePlay = time + this.value * 1000;
+            playbackController.getControls().goToTime(timePlay); 
+        }
+    </script>
+</html>

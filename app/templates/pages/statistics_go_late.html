@@ -1,0 +1,536 @@
+{% extends "layouts/default.html" %}
+
+{% block title %}{{ _('Thống kê đi muộn') }}{% endblock %}
+
+{% block stylesheets %}
+  {{ super() }}
+  <link href="https://www.jqueryscript.net/css/jquerysctipttop.css" rel="stylesheet" type="text/css">
+  <!-- <link href="{{ url_for('static', filename='vendors/bootstrap-daterangepicker/daterangepicker.css') }}" rel="stylesheet"> -->
+
+{% endblock stylesheets %}
+
+{% block content %}
+<style>
+  .demo-container {
+    position: relative;
+    height: 400px;
+  }
+
+  .backgroundTotalCamera {
+    background: #f3545d !important;
+  }
+
+  .backgroundTotalCompany {
+    background: #fdaf4b !important;
+  }
+
+  #chart {
+    width: 100%;
+    height: 550px;
+    margin: 0;
+    padding: 0;
+  }
+
+  .btn-print-pro-mqn{
+    float: right;
+    position: absolute;
+    right: -530px;
+    top: 10px;
+  }
+    .fa-check {
+        color: green
+    }
+    .fa-times {
+        color: red
+    }
+</style>
+<div class="page-inner">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex align-items-center">
+            <h4 class="card-title">{{ _('Thống kế lịch sử đi muộn') }}</h4>
+          </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card card-with-nav">
+                    <div class="card-header">
+                        <div class="row">
+                            <div class=col-sm-4>
+                                <div class="d-flex align-items-center fix-top-button">
+                                    <div class="form-group">
+                                        <label>Chọn khoảng thời gian:</label>
+                                        <div class="form-group form-group-default">
+                                            <div id="timechange" class="pull-center" style="cursor: pointer; padding: 5px 10px; border: 1px solid #ccc">
+                                              <i class="glyphicon glyphicon-calendar fa fa-calendar pull-center"></i>
+                                              <span></span> <b class="caret"></b>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class=col-sm-4>
+                                <div class="d-flex align-items-center fix-top-button">
+                                    <div class="form-group">
+                                        <label>{{ _('Chọn trung tâm hành chính công') }}</label>
+                                        <div class="form-group form-group-default">
+                                            <select name="address" id="address" class="form-control">
+                                                <option value="0" >{{ _('Tất cả') }}</option>
+                                                {% for addr in addresses %}
+                                                    <option value="{{ addr.id }}">{{ addr.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class=col-sm-4>
+                                <button id="filter_data" class="mt-3 btn btn-primary btn-round ml-auto fix-right-mqn">
+                                    <i class="fa fa-search"></i>
+                                    {{ _('Lọc') }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                  <div class="card card-stats card-warning card-round">
+                    <div class="card-body">
+                      <div class="row">
+                        <div class="col-5">
+                          <div class="icon-big text-center">
+                            <i class="flaticon-user-2"></i>
+                          </div>
+                        </div> 
+                        <div class="col-7 col-stats">
+                          <div class="numbers">
+                            <p class="card-category">{{ _('Thời gian đến muộn trung bình: ') }}</p>
+                            <h4 class="card-title" id="total_avg"></h4>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+        </div>
+        <div class="card">
+            <div class="" id="chartDIV">
+                <h2 style="padding-left:2em">Biểu đồ thống kê đi muộn</h2>
+                <br>
+                <canvas id="chart"></canvas>
+            </div>
+            <hr/>
+            <div id="" class="">
+                <h2 style="padding-left:2em">Bảng thống kê đi muộn</h2>
+                <br>
+                <div class="table-responsive">
+                    <table id="datatable" class="display table table-striped table-hover table-head-bg-primary">
+                        <thead>
+                            <tr>
+                                <th>{{ _('Tên') }}</th>
+                                <th>{{ _('TT HCC') }}</th>
+                                <th>{{ _('Thời gian đi muộn trung bình') }}</th>
+                                <th>{{ _('Thao tác') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-responsive">
+                    <table id="datatableStaff" class="display table table-striped table-hover table-head-bg-primary">
+                        <thead>
+                            <tr>
+                                <th>{{ _('Tên') }}</th>
+                                <th>{{ _('TT HCC') }}</th>
+                                <th>{{ _('Trạng thái') }}</th>
+                                <th>{{ _('Thời gian đi muộn trung bình') }}</th>
+                                {% for time in timeList %}
+                                <th>{{ time }}</th>
+                                {% endfor %}
+                                <th>{{ _('Thao tác') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock content %}
+  
+{% block javascripts %}
+  {{ super()}}
+  <script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+  <script src="https://cdn.anychart.com/releases/v8/themes/dark_blue.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
+<script>
+    var time = {{time|tojson}}
+    var addressList = {{addressesData|tojson}}
+    var diachi = {{diachi|tojson}}
+    var startTime = time.startTime
+    var endTime = time.endTime
+    var address = {{address}}
+    var check = true;
+    var colors = ['#f54842','#f58d42','#f5e042','#b0f542','#51f542','#51f542','#42cef5','#4275f5','#4275f5','#4275f5','#f54281']
+    var ctx_live = document.getElementById("chart");
+    var lineChart = [];
+    for(let i=0;i<addressList.length;i++){
+        lineChart.push({
+                data: [],
+                borderWidth: 1,
+                borderColor:colors[i],
+                label: addressList[i],
+            })
+    }
+    var myChart = new Chart(ctx_live, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: lineChart
+        }
+    });
+
+    function setDatatable(endTime, endTime, address, url){
+        var element = document.getElementById('datatableStaff');
+        element.parentNode.removeChild(element);
+        $('#datatable').DataTable({
+            "pageLength": 10,
+            "processing": true,
+            "serverSide": true,
+            "ajax": {
+               "url": url,
+               "data": function ( d ) {
+                   d.startTime = startTime;
+                   d.endTime = endTime;
+                   d.address = address;
+               }
+            },
+            "columnDefs": [
+                {
+                "targets": [ 3 ],
+                "render": function ( data, type, row ) {
+                    if(check){
+                        $('#total_avg').text(row[4]).show();
+                        check = false;
+                    }
+                    if(address){
+                        return `<td><a class="form-button-action btn btn-primary btn-lg" href="profile.html?id=${row[0]}#loginhistorytab"><i class="">{{ _('Xem chi tiết') }}</i></a></td>` ;
+                    }
+                    else
+                        return ;
+                    }
+                },
+            ],
+            "columns":[{"data":"1"},{"data":"2"},{"data":"3"},{"data":null,"defaultContent":"", "searchable":false,"orderable": false}],
+            "language": {
+                "decimal":        "",
+                "emptyTable":     "{{ _('Không có dữ liệu') }}",
+                "info":           "{{ _('Hiển thị từ _START_ tới _END_ trong tổng số _TOTAL_ dữ liệu') }}",
+                "infoEmpty":      "{{ _('Không có dữ liệu hiển thị') }}",
+                "infoFiltered":   "{{ _('(lọc từ _MAX_ dữ liệu)') }}",
+                "infoPostFix":    "",
+                "thousands":      ",",
+                "lengthMenu":     "{{ _('Hiển thị _MENU_ dữ liệu trên 1 trang') }}",
+                "loadingRecords": "{{ _('Đang tải ...') }}",
+                "processing":     "{{ _('Đang xử lý ...') }}",
+                "search":         "{{ _('Tìm kiếm:') }}",
+                "zeroRecords":    "{{ _('Không tìm thấy dữ liệu') }}",
+                "paginate": {
+                    "first":      "<<",
+                    "last":       ">>",
+                    "next":       ">",
+                    "previous":   "<"
+                },
+                "aria": {
+                    "sortAscending":  "{{ _(': sắp xếp tăng dần') }}",
+                    "sortDescending": "{{ _(': sắp xếp giảm dần') }}"
+                }
+            }
+        });
+    }
+    function setDatatableStaff(time, address){
+        // console.log(time, address)
+        var element = document.getElementById('datatable');
+        element.parentNode.removeChild(element);
+        var element_chart = document.getElementById('chartDIV');
+        element_chart.parentNode.removeChild(element_chart);
+        $('#datatableStaff').DataTable({
+            "pageLength": 10,
+            "processing": true,
+            "serverSide": true,
+            "ajax": {
+               "url": "{{ url_for('staffTableData') }}",
+               "data": function ( d ) {
+                   d.time = time;
+                   d.address = address;
+               }
+            },
+            "columnDefs": [
+                {
+                    "targets": [ 4 ],
+                    "render": function ( data, type, row ) {
+                        if(row[4])
+                            return '<i class="fa fa-check"></i>'
+                        else    
+                            return '<i class="fa fa-times"></i>' ;
+                    }
+                },
+                {
+                    "targets": [ 5 ],
+                    "render": function ( data, type, row ) {
+                        if(row[5])
+                            return '<i class="fa fa-check"></i>'
+                        else    
+                            return '<i class="fa fa-times"></i>' ;
+                    }
+                },
+                {
+                    "targets": [ 6 ],
+                    "render": function ( data, type, row ) {
+                        if(row[6])
+                            return '<i class="fa fa-check"></i>'
+                        else    
+                            return '<i class="fa fa-times"></i>' ;
+                    }
+                },
+                {
+                    "targets": [ 7 ],
+                    "render": function ( data, type, row ) {
+                        if(row[7])
+                            return '<i class="fa fa-check"></i>'
+                        else    
+                            return '<i class="fa fa-times"></i>' ;
+                    }
+                },
+                {
+                    "targets": [ 8 ],
+                    "render": function ( data, type, row ) {
+                        if(row[8])
+                            return '<i class="fa fa-check"></i>'
+                        else    
+                            return '<i class="fa fa-times"></i>' ;
+                    }
+                },
+                {
+                    "targets": [ 9 ],
+                    "render": function ( data, type, row ) {
+                        if(row[9])
+                            return '<i class="fa fa-check"></i>'
+                        else    
+                            return '<i class="fa fa-times"></i>' ;
+                    }
+                },
+                {
+                    "targets": [ 10 ],
+                    "render": function ( data, type, row ) {
+                        if(row[10])
+                            return '<i class="fa fa-check"></i>'
+                        else    
+                            return '<i class="fa fa-times"></i>' ;
+                    }
+                },
+                {
+                    "targets": [ 11 ],
+                    "render": function ( data, type, row ) {
+                        if(check){
+                            $('#total_avg').text(row[11]).show();
+                            check = false;
+                        }
+                        if(address){
+                            return `<td><a class="form-button-action btn btn-primary btn-lg" href="profile.html?id=${row[0]}#loginhistorytab"><i class="">{{ _('Xem chi tiết') }}</i></a></td>` ;
+                        }
+                        else
+                            return ;
+                    }
+                },
+            ],
+            "columns":[{"data":"1"},{"data":"2"},{"data":"12"},{"data":"3"},{"data":"4"},{"data":"5"},{"data":"6"},{"data":"7"},{"data":"8"},{"data":"9"},{"data":"10"},{"data":null,"defaultContent":"", "searchable":false,"orderable": false}],
+            "language": {
+                "decimal":        "",
+                "emptyTable":     "{{ _('Không có dữ liệu') }}",
+                "info":           "{{ _('Hiển thị từ _START_ tới _END_ trong tổng số _TOTAL_ dữ liệu') }}",
+                "infoEmpty":      "{{ _('Không có dữ liệu hiển thị') }}",
+                "infoFiltered":   "{{ _('(lọc từ _MAX_ dữ liệu)') }}",
+                "infoPostFix":    "",
+                "thousands":      ",",
+                "lengthMenu":     "{{ _('Hiển thị _MENU_ dữ liệu trên 1 trang') }}",
+                "loadingRecords": "{{ _('Đang tải ...') }}",
+                "processing":     "{{ _('Đang xử lý ...') }}",
+                "search":         "{{ _('Tìm kiếm:') }}",
+                "zeroRecords":    "{{ _('Không tìm thấy dữ liệu') }}",
+                "paginate": {
+                    "first":      "<<",
+                    "last":       ">>",
+                    "next":       ">",
+                    "previous":   "<"
+                },
+                "aria": {
+                    "sortAscending":  "{{ _(': sắp xếp tăng dần') }}",
+                    "sortDescending": "{{ _(': sắp xếp giảm dần') }}"
+                }
+            }
+        });
+    }
+
+</script>
+<script>
+    function chart(address, start, end){
+        myChart.reset();
+        $.ajax({
+            url: '/chart_statistical',
+            method : 'POST',
+            dataType: 'JSON',
+            data: {
+                start : start.format('YYYY-MM-DD'), 
+                end : end.format('YYYY-MM-DD'), 
+                address : address
+            },
+            success: function(data) {
+                // console.log(data)
+                myChart.data.labels = []
+                if (address){
+                    let i = addressList.findIndex(e =>  e == Object.keys(data)[0]);
+                    myChart.data.datasets[i].data = []
+                    for(let label in data[Object.keys(data)[0]]){
+                        myChart.data.labels.push(label);
+                        myChart.data.datasets[i].data.push(data[Object.keys(data)[0]][label]);
+                    }
+                }
+                else{
+                    let i=0;
+                    for(let addr in data){
+                        myChart.data.datasets[i].data = []
+                        for(let label in data[addr]){
+                            if(i==0){
+                                myChart.data.labels.push(label);
+                            }
+                            myChart.data.datasets[i].data.push(data[addr][label]);
+                        }
+                        i++;
+                    }
+                }
+                if(myChart.data.labels.length == 1){
+                    myChart.data.labels.unshift('');
+                    myChart.data.labels.push('');
+                    for(let index = 0; index < myChart.data.datasets.length; index++)
+                        myChart.data.datasets[index].data.unshift(null);
+                }
+                myChart.update();
+            },
+            error: function(response) {
+                console.log('Fail')
+            },
+        });
+        return false;
+    };
+
+    $(document).ready(function(){
+        $("#address").val(address);
+        $(function() {
+            var cb = function(start, end, label) {
+                $('#timechange span').html(label + ' : ' + start.format('DD-MM-YYYY') + ' - ' + end.format('DD-MM-YYYY')  );
+                startTime = start.format('YYYY-MM-DD')
+                endTime = end.format('YYYY-MM-DD')
+            };
+            $('#timechange').daterangepicker({
+                "locale": {
+                    "format": "YYYY-MM-DD",
+                    "separator": " - ",
+                    "applyLabel": "{{ _('Chọn') }}",
+                    "cancelLabel": "{{ _('Hủy') }}",
+                    "fromLabel": "{{ _('Từ') }}",
+                    "toLabel": "{{ _('Tới') }}",
+                    "customRangeLabel": "{{ _('Tùy chọn') }}",
+                    "daysOfWeek": [
+                        "{{ _('CN') }}",
+                        "{{ _('T2') }}",
+                        "{{ _('T3') }}",
+                        "{{ _('T4') }}",
+                        "{{ _('T5') }}",
+                        "{{ _('T6') }}",
+                        "{{ _('T7') }}"
+                    ],
+                    "monthNames": [
+                        "{{ _('Tháng 1') }}",
+                        "{{ _('Tháng 2') }}",
+                        "{{ _('Tháng 3') }}",
+                        "{{ _('Tháng 4') }}",
+                        "{{ _('Tháng 5') }}",
+                        "{{ _('Tháng 6') }}",
+                        "{{ _('Tháng 7') }}",
+                        "{{ _('Tháng 8') }}",
+                        "{{ _('Tháng 9') }}",
+                        "{{ _('Tháng 10') }}",
+                        "{{ _('Tháng 11') }}",
+                        "{{ _('Tháng 12') }}"
+                    ],
+                    "firstDay": 1
+                },
+                startDate: moment(startTime, 'YYYY-MM-DD'),
+                endDate: moment(endTime, 'YYYY-MM-DD'),
+                minDate: '01/01/2018',
+                maxDate: '12/31/2049',
+                dateLimit: {
+                    days: 60
+                },
+                showDropdowns: true,
+                showWeekNumbers: true,
+                timePicker: false,
+                timePickerIncrement: 1,
+                timePicker12Hour: true,
+                opens: 'left',
+                ranges: {
+                    '{{ _('Hôm nay') }}': [moment(), moment()],
+                    '{{ _('Hôm qua') }}': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                    '{{ _('7 ngày trước') }}': [moment().subtract(6, 'days'), moment()],
+                    '{{ _('30 ngày trước') }}': [moment().subtract(29, 'days'), moment()],
+                    '{{ _('Tháng này') }}': [moment().startOf('month'), moment().endOf('month')],
+                    '{{ _('Tháng trước') }}': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                }
+            }, cb);
+            cb(moment(startTime, 'YYYY-MM-DD'),moment(endTime, 'YYYY-MM-DD'),'{{ _('Hôm nay') }}')
+        });
+        if(address && startTime == endTime && diachi.start ){
+            setDatatableStaff(startTime, address)
+        }
+        else{
+            setDatatable(startTime, endTime, address, "{{ url_for('statistical_go_late_data') }}")
+        }
+        if(address==0){
+            chart(address, moment(startTime, 'YYYY-MM-DD'),moment(endTime, 'YYYY-MM-DD'))
+        }
+        else{
+            if(startTime != endTime){
+                if(diachi.start){
+                    chart(address, moment(startTime, 'YYYY-MM-DD'),moment(endTime, 'YYYY-MM-DD'))
+                }
+                else{
+                    showError('{{ _('ETitle') }}', '{{ _('TT HCC này không có thời gian bắt đầu') }}');
+                }
+            }
+        }
+        $('#filter_data').on('click', function (e) {
+            address = $("#address").val()
+            // console.log(startTime, endTime, address)
+            url = window.location.href.split('?')[0] + `?startTime=${startTime}&endTime=${endTime}&address=${address}`
+            window.location.replace(url);
+        });
+    });
+
+</script>
+ 
+{% endblock javascripts %}

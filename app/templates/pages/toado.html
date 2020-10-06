@@ -1,0 +1,154 @@
+{% extends "layouts/default.html" %}
+
+{% block title %} {{ _('Vị trí camera') }} {% endblock title %}
+
+{% block stylesheets %}
+
+{% endblock stylesheets %}
+
+{% block content %}
+  <style type="text/css">
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 600px;
+      }
+
+      /* Optional: Makes the sample page fill the window. */
+      #floating-panel {
+        position: absolute;
+        top: 125px;
+        left: 35%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+        text-align: center;
+        font-family: "Roboto", "sans-serif";
+        line-height: 30px;
+        padding-left: 10px;
+      }
+    </style>
+    <div class="container">
+      <div id="floating-panel">
+        <input id="address" type="textbox" value="Hà Nội, Việt Nam" />
+        <input id="submit" type="button" value="Tìm kiếm" />
+      </div>
+      <div id="map"></div>
+        <!-- Modal -->
+				<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+					<div class="modal-dialog" role="document">
+						<div class="modal-content">
+						<div class="modal-header">
+							<h5 class="modal-title" id="exampleModalLabel">Xem trực tiếp</h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body">
+							<div id="player" style="height:400px;margin:0 auto;text-align:center">
+							</div>
+						</div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+						</div>
+						</div>
+					</div>
+				</div>
+    </div>
+{% endblock content %}
+
+{% block javascripts %}
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgOuZWde1UFUOIunPgFFabrbsjPhKxTF0&callback=initMap&libraries=&v=weekly"
+    defer
+  ></script>
+  <script src="https://cdn.jwplayer.com/libraries/mX8w3yYs.js"></script>
+  <script>
+    "use strict";
+    let map;
+    let cameras = {{data|tojson}}
+    let markers = []
+    function initMap() {
+      const mapOptions = {
+        zoom: 8,
+        center: {
+          lat: 21.0277644,
+          lng: 105.8341598
+        }
+      };
+      map = new google.maps.Map(document.getElementById("map"), mapOptions);
+      for(let location of Object.values(cameras)){
+
+        const marker = new google.maps.Marker({
+          position: {
+            lat: parseFloat(location[0].latitude),
+            lng: parseFloat(location[0].longitude)
+          },
+          map: map,
+          icon: "/static/assets/img/cam.png"
+        });
+        google.maps.event.addListener(marker, "click", () => {
+          let html = ``;
+          let i = 0;
+          location.forEach(local => {
+            html += `<li style="color: black;"><a href="" class="view_live" data-toggle="modal" data-target="#exampleModal" data-link="${local.camera[i].udid}">${local.camera[i].name}<a></li>`
+            i = i + 1;
+          });
+          infowindow.setContent(`<h5 style="color: red;">Danh sách camera tại ${location[0].address}:</h5><ul>`+ html +`</ul>`);
+          infowindow.open(map, marker);
+        });
+        markers.push(marker)
+      }
+
+      const infowindow = new google.maps.InfoWindow({
+        content: ""
+      });
+      
+    }
+
+    $(document).ready(function(){
+      const geocoder = new google.maps.Geocoder();
+      document.getElementById("submit").addEventListener("click", () => {
+        geocodeAddress(geocoder, map);
+      });
+      $(document).on('click', '.view_live', function (e) {
+				let link = $(this).data('link');
+				jwplayer("player").setup({
+          file: `http://46.101.166.100:8080/app/${link}.m3u8`,
+          height: 480,
+        });
+      });
+      function geocodeAddress(geocoder, resultsMap) {
+        const address = document.getElementById("address").value;
+        geocoder.geocode(
+          {
+            address: address
+          },
+          (results, status) => {
+            if (status === "OK") {
+              resultsMap.setCenter(results[0].geometry.location);
+              const marker = new google.maps.Marker({
+                map: resultsMap,
+                position: results[0].geometry.location,
+              });
+              google.maps.event.addListener(marker, "click", () => {
+                infowindow.setContent(`<h5 style="color: red;">${address}<h5>`);
+                infowindow.open(map, marker);
+              });
+              markers.push(marker)
+            } else {
+              alert(
+                "Geocode was not successful for the following reason: " + status
+              );
+            }
+          }
+        );
+      }
+      const infowindow = new google.maps.InfoWindow({
+        content: ""
+      });
+    })
+  </script>
+{% endblock javascripts %}

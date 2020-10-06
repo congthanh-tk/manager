@@ -1,0 +1,357 @@
+{% extends "layouts/default.html" %}
+
+{% block title %} {{ _('Quản lý danh sách đen') }} {% endblock title %}
+
+{% block stylesheets %}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock stylesheets %}
+
+{% block content %}
+<style>
+    .form-control:disabled,
+    .form-control[readonly] {
+        background: transparent !important;
+    }
+
+    .imageThumb {
+        height: 80px;
+        max-width: 80px;
+        border: 2px solid;
+        padding: 1px;
+        cursor: pointer;
+        object-fit: cover;
+    }
+
+    .pip {
+        display: inline-block;
+        margin-top: 10px;
+        margin-right: 10px;
+        height: 80px;
+    }
+
+    .remove {
+        display: block;
+        background: #444;
+        color: white;
+        text-align: center;
+        cursor: pointer;
+        top: -77px;
+        position: relative;
+        margin-bottom: 60px;
+        width: 19px;
+        left: 62px;
+    }
+
+    .remove:hover {
+        background: white;
+        color: black;
+    }
+
+    .face-image {
+        margin-bottom: 10px; 
+        padding: 5px;
+    }
+
+    .fix-right-mqn {
+        margin-right: 10px;
+    }
+
+</style>
+<div class="page-inner">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <h4 class="card-title">{{ _('Quản lý danh sách đen') }}</h4>
+                        <button class="btn btn-primary btn-round ml-auto fix-right-mqn" data-toggle="modal"
+                            data-target="#addRowModal">
+                            <i class="fa fa-plus"></i>
+                            {{ _('Thêm đối tượng theo dõi') }}
+                        </button>
+                        <button class="btn btn-primary btn-round">
+                            <span class="btn-label">
+                                <i class="fa fa-print"></i>
+                            </span>
+                            {{ _('In') }}
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Modal -->
+                    <div class="modal fade" id="addRowModal" tabindex="-1" role="dialog" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header no-bd">
+                                    <h5 class="modal-title">
+                                        <span class="fw-mediumbold">{{ _('Thông tin đối tượng') }}</span>
+                                    </h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <form class="addForm" method="post" id="formValidation" novalidate="novalidate">
+                                        <div class="row" >
+                                            <div class="col-md-6">
+                                                <div class="form-group form-group-default">
+                                                    <label>{{ _('Tên đối tượng') }}</label>
+                                                    <input id="name" type="text" name="name" class="form-control"
+                                                        placeholder="{{ _('Tên đối tượng') }}" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group form-group-default">
+                                                    <label>{{ _('Phân quyền') }}</label>
+                                                    <select name="role" id="role" class="form-control" required>
+                                                        <option value="" disabled>{{ _('Lựa chọn phân quyền') }}</option>
+                                                        {% for role in roles %}
+                                                            {% if role.name == "black_list" %}
+                                                                <option selected value="{{ role.id }}">Danh sách đen</option>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-12">
+                                                <div class="form-group form-group-default">
+                                                    <label>{{ _('Thêm tệp ảnh khuôn mặt') }}</label>
+                                                    <input type="file" id="avataName" name="avataName[]" class="form-control" multiple required/>
+                                                    
+                                                    <div id="file_selected"></div>
+                                                    
+                                                </div>
+                                            </div>
+                                        </div>
+                                         <div class="modal-footer no-bd">
+                                                <input type="submit" name="" value="{{ _('Cập nhật') }}" class="btn btn-success">
+                                                <input type="reset" name="" value="{{ _('Nhập lại') }}" class="btn btn-danger">
+                                        </div>
+                                    </form>
+                                </div>
+                               
+                            </div>
+                        </div>
+                    </div>
+                  
+                    <div class="table-responsive">
+                        <table id="datatable" class="display table table-striped table-hover table-head-bg-primary">
+                            <thead>
+                                <tr>
+                                    <th>{{ _('Họ và tên') }}</th>
+                                    <th>{{ _('Ảnh gương mặt') }}</th>
+                                    <th style="width: 10%;">{{ _('Thao tác') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block javascripts %}
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        var sendData = [];
+        var tables = $('#datatable').DataTable({
+            "pageLength": 10,
+            "processing": true,
+            "serverSide": true,
+            "ajax": "{{ url_for('black_users_data') }}",
+            "columns":[{"data":"1"},{"data":null,"defaultContent":"", "searchable":false,"orderable": false}],
+            "columnDefs": [
+            {
+                "targets": [ 1 ],
+                "render": function ( data, type, row ) {
+                        return `<td syle="text-align:center"><img syle="text-align:center" class="avataUser" src="/${row[2]}" alt="${row[1]}"></td>`
+                        // return `<img syle="text-align:center" src="/static/assets/img/face/3/uk_1577242549324.jpg" class="avataUser" alt="${row[2]}">`
+                    }
+                },
+                {
+                "targets": [ 2 ],
+                "render": function ( data, type, row, meta ) {
+                        let rowIndex = meta.row
+                        return `
+                        <td style="text-align: center">
+                            <div class="form-button-action" >
+                                <button type="button" title="" class="btn btn-primary btn-lg fix-right-mqn btn-round table_item_edit" data-original-title="Edit Task" data-id="${row[0]}" data-name="${row[1]}"> 
+                                    <a href=profile.html?id=${row[0]}#loginhistorytab>
+                                        <span style="color: white"><i class="fa fa-list-alt"></i> {{ _('Xem lịch sử') }}</span>
+                                    </a> 
+                                </button>
+                                <button type="button" data-toggle="tooltip" title="" class="btn btn-danger btn-round table_item_remove" data-original-title="Remove" data-id=${row[0]} data-name=${row[1]}> 
+                                    <span style="color: white"><i class="fa fa-times"></i>  {{ _('Xóa đối tượng') }}</span>
+                                </button>
+                            </div>
+                        </td>` ;
+                    }
+                }
+            ],
+                "language": {
+                    "decimal":        "",
+                    "emptyTable":     "{{ _('Không có dữ liệu') }}",
+                    "info":           "{{ _('Hiển thị từ _START_ tới _END_ trong tổng số _TOTAL_ dữ liệu') }}",
+                    "infoEmpty":      "{{ _('Không có dữ liệu hiển thị') }}",
+                    "infoFiltered":   "{{ _('(lọc từ _MAX_ dữ liệu)') }}",
+                    "infoPostFix":    "",
+                    "thousands":      ",",
+                    "lengthMenu":     "{{ _('Hiển thị _MENU_ dữ liệu trên 1 trang') }}",
+                    "loadingRecords": "{{ _('Đang tải ...') }}",
+                    "processing":     "{{ _('Đang xử lý ...') }}",
+                    "search":         "{{ _('Tìm kiếm:') }}",
+                    "zeroRecords":    "{{ _('Không tìm thấy dữ liệu') }}",
+                    "paginate": {
+                        "first":      "<<",
+                        "last":       ">>",
+                        "next":       ">",
+                        "previous":   "<"
+                    },
+                    "aria": {
+                        "sortAscending":  "{{ _(': sắp xếp tăng dần') }}",
+                        "sortDescending": "{{ _(': sắp xếp giảm dần') }}"
+                    }
+                }
+        });
+
+        if (window.File && window.FileList && window.FileReader) {
+            $("#avataName").on("change", function (e) {
+                var files = e.target.files,
+                    filesLength = files.length;
+                for (var i = 0; i < filesLength; i++) {
+                    var f = files[i]
+                    var fileReader = new FileReader();
+                    fileReader.file = f;
+                    fileReader.onload = (function (e) {
+                        var file = e.target;
+                        $("<span class=\"pip\">" +
+                            "<img class=\"imageThumb\" src=\"" + e.target.result +
+                            "\" title=\"" + file.name + "\"/>" +
+                            "<br/><span class=\"remove\"><i class='flaticon-cross'></i></span>" +
+                            "</span>").insertAfter("#file_selected");
+                        sendData.push({f: this.file,file: file, url: e.target.result});
+
+                        $(".remove").click(function () {
+                            //$(this).parent(".pip").remove();
+                            var self = $(this).parent().children();
+                            sendData.map(function(value, currentIndex, data) {
+                              // Remove only image which removed from preview
+                              if (self[0].currentSrc === value.url) {
+                                sendData.splice(currentIndex, 1);
+                              }
+                            });
+                            $(this).parent().remove();
+                        });
+                    });
+                    fileReader.readAsDataURL(f);
+                }
+            });
+        } else {
+            alert("{{ _('Trình duyệt của bạn không hỗ trợ tính năng này , vui lòng thay đổi trình duyệt !') }}")
+        }
+
+        $('#formValidation').submit(function(e){   
+            e.preventDefault();
+            var $form = $(this);
+            if(! $form.valid()) return false;
+
+            var formData = new FormData();
+            var file_num = sendData.length;
+            formData.append('file_num', file_num);
+            for (var i = 0; i < file_num; i++) {
+                formData.append('file' + i, sendData[i].f);
+            }
+            formData.append('name', $("#name").val());
+            formData.append('role', $("#role").val());
+            $.ajax({
+                url: '/add_black_user',
+                data: formData,
+                type: 'POST',
+                contentType: false, 
+                processData: false,
+                success: function(response) {
+                    console.log(response);
+                    if (response.success == true)
+                    {
+                        showSuccess('{{ _('Title') }}', '{{ _('Thêm thành công') }}');
+                        $('#datatable').DataTable().clear().draw();
+
+                    } else {
+                        showError('{{ _('ETitle') }}', '{{ _('Thêm thất bại') }}');
+                    }
+                        
+                },
+                error: function(error) {
+                    showError('{{ _('Thêm thất bại') }}', error.responseJSON.error.message);
+                }
+            });
+
+
+            $('#addRowModal').modal('hide');
+            });
+
+                    
+            $('#addRowButton').click(function() {
+                $('#addRowModal').modal('hide');
+            });
+
+            // Delete a record
+            $('#datatable').on('click', '.table_item_remove', function (e) {
+            e.preventDefault();  
+            data_id = $(this).attr("data-id");
+            row = $(this).closest('tr');
+            swal({
+                title: '{{ _('Bạn có chắc chắn xóa không?') }}',
+                text: "{{ _('Bạn sẽ không thể khôi phục như trước!') }}",
+                type: '{{ _('Cảnh báo') }}',
+                buttons:{
+                    confirm: {
+                        text : '{{ _('Có') }}',
+                        className : 'btn btn-success'
+                    },
+                    cancel: {
+                        text : '{{ _('Không') }}',
+                        visible: true,
+                        className: 'btn btn-danger'
+                    }
+                }
+            }).then((Delete) => {
+                if (Delete) {
+                    $.ajax({
+                        url: '/del_user',
+                        data: {id : data_id},
+                        type: 'POST',
+                        success: function(response) {
+                            console.log(response);
+                            if (response.success == true)
+                            {
+                                showSuccess('{{ _('Title') }}', '{{ _('Xóa thành công') }}');
+                                row.remove();
+                                $('#datatable').DataTable().clear().draw();
+
+                            } else {
+                                showError('{{ _('ETitle') }}', '{{ _('Xóa thất bại') }}');
+                            }
+                                
+                        },
+                        error: function(error) {
+                            console.log(error)
+                            showError('{{ _('ETitle') }}', '{{ _('Xóa thất bại') }}');
+                        }
+                    });
+                } else {
+                    swal.close();
+                }
+            });
+
+            } );
+    });
+</script>
+<script src="/static/assets/js/setting-demo2.js"></script>
+{% endblock javascripts %}

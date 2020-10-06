@@ -1,0 +1,502 @@
+{% extends "layouts/default.html" %}
+
+{% block title %} {{ _('Quản lý lịch tiếp dân của CBCC') }} {% endblock title %}
+
+{% block stylesheets %}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+<link rel="stylesheet" type="text/css" href="/static/assets/css/jquery-weekdays.css" />
+{% endblock stylesheets %}
+
+{% block content %}
+<style>
+    .modal-dialog {
+        max-width: 750px;
+        margin: 1.75rem auto;
+    }
+    .fix-right-mqn {
+        margin-right: 10px;
+    }
+
+    .avataUser{
+        padding: 10px 0px;
+        margin: 0 auto;
+        display: table;
+    }
+
+    .selectLocation .select2-selection{
+        background: #1a1f35 !important;
+        border: none;
+    }
+
+   .select2{
+        width:100% !important;
+    }
+
+    .select2-container--default .select2-selection--multiple{
+        background: #1a1f35;
+        border: none;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice{
+        background-color: #1572E8;
+        color: #ffffff;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color: lightcoral;
+    }
+
+    .cells{
+        background: rgb(26, 32, 53)
+    }
+    .cells[data-selected="1"]{
+        background: yellow
+    }
+</style>
+<div class="page-inner">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <h4 class="card-title">{{ _('Quản lý lịch tiếp dân của CBCC') }}</h4>
+                        <button class="btn btn-primary btn-round ml-auto fix-right-mqn">
+                            <span class="btn-label">
+                                <i class="fa fa-print"></i>
+                            </span>
+                            {{ _('In') }}
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Modal -->
+                    <div class="modal fade" id="addRowModal" tabindex="-1" role="dialog" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header no-bd">
+                                    <h5 class="modal-title">
+                                        <span class="fw-mediumbold">{{ _('Lịch tiếp dân của CBCC') }}</span>
+                                    </h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <form class="addForm" method="post" id="formValidation" novalidate="novalidate">
+                                        <div class="row" >
+                                            <div class="col-md-6" hidden >
+                                                <div class="form-group form-group-default">
+                                                    <label>{{ _('Mã khách CBCC') }}</label>
+                                                    <input id="id" type="text" name="id" class="form-control"
+                                                        placeholder="{{ _('Mã khách CBCC') }}" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6" hidden>
+                                                <div class="form-group form-group-default">
+                                                    <label>{{ _('Tên khách') }}</label>
+                                                    <input id="name" type="text" name="name" class="form-control"
+                                                        placeholder="{{ _('Tên khách') }}" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6" hidden>
+                                                <div class="form-group form-group-default">
+                                                    <label>{{ _('Ngày sinh') }}</label>
+                                                    <input type="text" class="form-control" id="birth" name="birth" placeholder="{{ _('Chọn ngày sinh') }}" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6" hidden>
+                                                <div class="form-group form-group-default">
+                                                    <label>{{ _('Số CMND/CCCD/Hộ chiếu') }}</label>
+                                                    <input id="code" type="text" name="code" class="form-control"
+                                                        placeholder="{{ _('Số CMND/CCCD/Hộ chiếu') }}" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6" hidden>
+                                                <div class="form-group form-group-default">
+                                                    <label>{{ _('Tên công ty') }}</label>
+                                                    <input id="company" type="text" name="company" class="form-control"
+                                                        placeholder="{{ _('Nơi làm việc') }}" required>
+                                                </div>
+                                            </div> 
+                                            <div class="col-md-12">
+                                                <div class="form-group form-group-default">
+                                                    <label>{{ _('Chọn địa điểm') }}</label>
+                                                    <select name="addresses" id="addresses" multiple="multiple" placeholder="{{ _('Chọn địa điểm') }}" class="form-control selectLocation" required>
+                                                        {% for address in addresses %}
+                                                        <option class="setValue" value="{{ address.id }}">{{ address.address }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-12">
+                                                <div class="setLocal row">
+                                                    
+                                                </div>
+                                            </div> 
+                                        </div>
+                                         <div class="modal-footer no-bd">
+                                            <input type="submit" name="" value="{{ _('Cập nhật') }}" class="btn btn-success">
+                                            <input type="reset" name="" value="{{ _('Nhập lại') }}" class="btn btn-danger">
+                                        </div>
+                                    </form>
+                                </div>
+                               
+                            </div>
+                        </div>
+                    </div>
+                  
+                    <div class="table-responsive">
+                        <table id="datatable" class="display table table-striped table-hover table-head-bg-primary">
+                            <thead>
+                                <tr>
+                                    <th>{{ _('Họ và tên') }}</th>
+                                    <th>{{ _('Ảnh gương mặt') }}</th>
+                                    <th>{{ _('Lịch tiếp dân') }}</th>
+                                    <th style="width: 10%">{{ _('Thao tác') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block javascripts %}
+<script src="/static/assets/js/setting-demo2.js"></script>
+<script src="/static/assets/js/jquery-weekdays.js"></script>
+<script type="text/javascript">
+    var listAddresses =  {{addresses|tojson}};
+    var selectedAddresses = {};
+    const weekdays = ["T2","T3","T4","T5","T6","T7","CN"]
+    const timeLists = ["Thời gian","08:00 - 10:00","10:00 - 12:00","12:00 - 14:00","14:00 - 16:00","16:00 - 18:00"]
+    function renderTable(addressId){
+        let html = `<div class="scheduleTable" data-addressid="${addressId}">
+                        <div class="container">`
+        for(let i=0;i<timeLists.length;i++){
+            html += `
+                <div class="row">
+                    <div style="border: solid thin; text-align: center;" class="col-sm-5">
+                        <p>${timeLists[i]}</p>
+                    </div>
+            `;
+            for(let j=0;j<weekdays.length;j++){
+                html += `
+                    ${ i == 0 ? `
+                        <div style="border: solid thin; text-align: center;" class="col-sm-1">
+                            <p>${weekdays[j]}</p>
+                        </div>
+                    ` : `
+                        <div style="border: solid thin; text-align: center;" id="cell-${i-1}-${j}" class="col-sm-1 cells" data-indexx="${i-1}" data-indexy="${j}" data-selected="0"></div>
+                    ` } 
+                `;
+            }
+            html += `</div>`;
+        }
+        html += `</div>
+            </div>`;
+        return html;
+    }
+    function renderDateTimeForSelectedAddress () {
+        let htmlSelectedAddress = ''
+        for (let sltAddressId in selectedAddresses) {
+            htmlSelectedAddress += `
+                <div class="col-md-12">
+                    <div class="form-group form-group-default">
+                        <label>Chọn thời gian cho địa điểm: ${selectedAddresses[sltAddressId].address}</label>
+                        ${renderTable(sltAddressId)}
+                    </div>
+                </div> 
+            `
+        }
+        return htmlSelectedAddress;
+
+    }
+
+    function getScheduleData(){
+        let result = {}
+        $(".scheduleTable").each(function(){
+            let addressId = $(this).data("addressid")
+            let schedule = []
+            $(this).find(".cells").each(function(){
+                let x = $(this).data("indexx")
+                let y = $(this).data("indexy")
+                let selected = Number($(this).attr("data-selected"))
+                schedule[x]? schedule[x].push(selected): schedule[x] = [selected]
+            })
+
+            result[addressId] = {
+                addressId: addressId,
+                addressName: listAddresses.find((address) => {return address.id == addressId}).address,
+                schedule: schedule
+            }
+        })
+        return result
+    }
+    function setScheduleData(data = {}){
+        for(let addressId in data){
+            const schedule = data[addressId].schedule;
+            schedule.map((row, x) => row.map((selected, y) => {
+                $(`.scheduleTable[data-addressid=${addressId}]`).find(`.cells#cell-${x}-${y}`).attr("data-selected", selected)
+            }))
+        }
+    }
+    
+    $(document).ready(function () {
+        $("body").on("click", ".cells", function() {
+            $(this).attr("data-selected", $(this).attr("data-selected") == '1' ? 0 : 1)
+        })
+
+        $('#addresses').select2();
+        $('#addresses').on('change', function (e) {
+            let values = $(this).val();
+            for (let value of values) {
+                let sltValue = listAddresses.find((cam) => {
+                    return cam.id == value
+                })
+                if (sltValue) {
+                    if (!selectedAddresses[value]) {
+                        selectedAddresses[value] = {
+                            id: value,
+                            address: sltValue.address,
+                        }
+                    }
+                }
+            }
+            for (let sladdress in selectedAddresses) {
+                if (!values.includes(sladdress)) {
+                    delete selectedAddresses[sladdress]
+                }
+            }
+            let scheduleData = getScheduleData()
+            let htmlSelectAddress = renderDateTimeForSelectedAddress()
+            $('.setLocal').html(htmlSelectAddress);
+            setScheduleData(scheduleData)
+            
+        });
+
+        var tables = $('#datatable').DataTable({
+            "pageLength": 10,
+            "processing": true,
+            "serverSide": true,
+            "ajax": "{{ url_for('staff_data') }}",
+            "columns":[{"data":"2"},{"data":null,"defaultContent":"", "searchable":false,"orderable": false}],
+            "columnDefs": [
+                {
+                "targets": [ 1 ],
+                "render": function ( data, type, row ) {
+                        return `<img syle="text-align:center" class="avataUser" src="/${row[6]}" alt="${row[2]}">`
+                    }
+                },
+                {
+                "targets": [ 2 ],
+                "render": function ( data, type, row ) {
+                    let html = ``;
+                    let values = JSON.parse(row[8])
+                    for(let value in values){
+                        html += `<ul>` + `${values[value].addressName} : `
+                        for(let i = 0; i<timeLists.length-1;i++){
+                            let check = values[value].schedule[i].find((item) => {return item == 1})
+                            if(check){
+                                html += `<li>${timeLists[i+1]}: `
+                                for(let j=0;j<weekdays.length;j++){
+                                    if(values[value].schedule[i][j]){
+                                        html += `${weekdays[j]}, `
+                                    }
+                                }
+                                html += `</li>`
+                            }
+                        }
+                        html += `</ul>`
+                    }
+                    return `<span"><h5>Lịch tiếp dân:</h5><span><div>${html}</div>`
+                    }
+                },
+                {
+                "targets": [ 3 ],
+                "render": function ( data, type, row, meta ) {
+                        let rowIndex = meta.row
+                        return `
+                            <td>
+                                <div class="form-button-action">
+                                    <button data-row="${rowIndex}" class="btn btn-primary btn-round ml-auto fix-right-mqn btn-action" data-toggle="modal" data-target="#addRowModal">
+                                        <i class="fa fa-edit"></i>
+                                        {{ _('Sửa lịch tiếp dân') }}
+                                    </button>
+                                    <button type="button" title="" class="btn btn-primary btn-lg btn-round table_item_edit" data-original-title="Edit Task" data-id="${row[1]}" data-name="${row[2]}"> 
+                                        <a href=profile.html?id=${row[1]}#loginhistorytab>
+                                            <span style="color: white"><i class="fa fa-list-alt"></i> {{ _('Xem lịch sử') }}</span>
+                                        </a> 
+                                    </button>
+                                </div>
+                            </td>` ;
+                    }
+                }
+            ],
+                "language": {
+                    "decimal":        "",
+                    "emptyTable":     "{{ _('Không có dữ liệu') }}",
+                    "info":           "{{ _('Hiển thị từ _START_ tới _END_ trong tổng số _TOTAL_ dữ liệu') }}",
+                    "infoEmpty":      "{{ _('Không có dữ liệu hiển thị') }}",
+                    "infoFiltered":   "{{ _('(lọc từ _MAX_ dữ liệu)') }}",
+                    "infoPostFix":    "",
+                    "thousands":      ",",
+                    "lengthMenu":     "{{ _('Hiển thị _MENU_ dữ liệu trên 1 trang') }}",
+                    "loadingRecords": "{{ _('Đang tải ...') }}",
+                    "processing":     "{{ _('Đang xử lý ...') }}",
+                    "search":         "{{ _('Tìm kiếm:') }}",
+                    "zeroRecords":    "{{ _('Không tìm thấy dữ liệu') }}",
+                    "paginate": {
+                        "first":      "<<",
+                        "last":       ">>",
+                        "next":       ">",
+                        "previous":   "<"
+                    },
+                    "aria": {
+                        "sortAscending":  "{{ _(': sắp xếp tăng dần') }}",
+                        "sortDescending": "{{ _(': sắp xếp giảm dần') }}"
+                    }
+                }
+        });
+        
+        $(document).on('click', '.btn-action', function (e) {
+            let rowIndex = $(this).data('row');
+            let data = tables.row(rowIndex).data();
+            $("#id").val(data[1]);
+            $("#name").val(data[2]);
+            if(data[3])
+                $("#birth").val(moment(data[3]).format("MM/DD/YYYY"));
+            else
+                $("#birth").val("");
+            $("#code").val(data[4]);
+            $("#company").val(data[5]);
+            selectedAddresses = {};
+            if(data[8]){
+                let dataRow = JSON.parse(data[8])
+                var keys = Object.keys(dataRow);
+                $('#addresses').val(keys).trigger('change');
+                selectedAddresses = dataRow;
+                // Set data for table
+                setScheduleData(dataRow)
+            }
+            else{
+                $('#addresses').val([]).trigger('change');
+            }
+        })
+
+
+
+        $('#formValidation').submit(function(e){     
+            e.preventDefault();
+            const schedule = getScheduleData();
+            var $form = $(this);
+            // check if the input is valid
+            if(! $form.valid()) return false;
+            var formData = new FormData();
+            formData.append('id', $("#id").val());
+            formData.append('name', $("#name").val());
+            formData.append('birth', $("#birth").val());
+            formData.append('guest_company', $("#company").val());
+            formData.append('code', $("#code").val());
+            formData.append('user_type', 0);
+            formData.append('permissions', JSON.stringify(schedule));
+            formData.append('user', $("#user").val());
+            formData.append('email', '');
+            formData.append('phone', '');
+            formData.append('role', $("#role").val());
+            formData.append('gender', $("#gender").val());
+            formData.append('position', '');
+            formData.append('company', $("#company").val());
+            formData.append('file_num', 0);
+            formData.append('unit', '');
+            formData.append('address', '');
+            $.ajax({
+                url: '/edit_profile',
+                data: formData,
+                type: 'POST',
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                    console.log(response);
+                    if (response.success == true)
+                    {
+                        showSuccess('{{ _('Title') }}', '{{ _('Cập nhật thành công') }}');
+                        
+                        setTimeout(function() { location.reload(); }, 2000);
+                    } else {
+                        showError('{{ _('ETitle') }}', '{{ _('Cập nhật thất bại') }}');
+                    }
+
+                },
+                error: function(error) {
+                    showError('{{ _('ETitle') }}', '{{ _('Cập nhật thất bại') }}');
+                }
+
+            });
+            $('#addRowModal').modal('hide');
+        });
+
+       
+        $('#addRowButton').click(function() {
+            
+            $('#addRowModal').modal('hide');
+
+        });
+
+        // Delete a record
+        $('#datatable').on('click', '.table_item_remove', function (e) {
+            e.preventDefault();  
+            data_id = $(this).attr("data-id");
+            row = $(this).closest('tr');
+            swal({
+                title: '{{ _('Bạn có chắc chắn xóa không?') }}',
+                text: "{{ _('Bạn sẽ không thể khôi phục như trước!') }}",
+                type: '{{ _('Cảnh báo') }}',
+                buttons:{
+                    confirm: {
+                        text : '{{ _('Có') }}',
+                        className : 'btn btn-success'
+                    },
+                    cancel: {
+                        text : '{{ _('Không') }}',
+                        visible: true,
+                        className: 'btn btn-danger'
+                    }
+                }
+            }).then((Delete) => {
+                if (Delete) {
+                    $.ajax({
+                        url: '/del_user',
+                        data: {id : data_id},
+                        type: 'POST',
+                        success: function(response) {
+                            console.log(response);
+                            if (response.success == true)
+                            {
+                                showSuccess('{{ _('Title') }}', '{{ _('Xóa thành công') }}');
+                                row.remove();
+                                $('#datatable').DataTable().clear().draw();
+
+                            } else {
+                                showError('{{ _('ETitle') }}', '{{ _('Xóa thất bại') }}');
+                            }
+                                
+                        },
+                        error: function(error) {
+                            showError('{{ _('ETitle') }}', '{{ _('Xóa thất bại') }}');
+                        }
+                    });
+                } else {
+                    swal.close();
+                }
+            });
+            
+        } );
+    });
+</script>
+{% endblock javascripts %}

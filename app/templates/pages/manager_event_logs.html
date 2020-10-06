@@ -1,0 +1,179 @@
+{% extends "layouts/default.html" %}
+
+{% block title %} {{ _('Quản lý lịch sử sự kiện') }} {% endblock title %}
+
+{% block stylesheets %}
+
+{% endblock stylesheets %}
+
+{% block content %}
+<style>
+    .fix-right-mqn {
+        margin-right: 10px;
+    }
+    .avataUser{
+        padding: 10px 0px;
+        margin: 0 auto;
+        display: table;
+    }
+</style>
+<div class="page-inner">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <h4 class="card-title">{{ _('Quản lý lịch sử sự kiện') }}</h4>
+                        <button class="btn btn-primary btn-round ml-auto fix-right-mqn">
+                            <span class="btn-label">
+                                <i class="fa fa-print"></i>
+                            </span>
+                            {{ _('In') }}
+                        </button>
+                    </div>
+                </div>
+                <!-- Modal -->
+				<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+					<div class="modal-dialog" role="document">
+						<div class="modal-content">
+						<div class="modal-header">
+							<h5 class="modal-title" id="exampleModalLabel">Xem trực tiếp</h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body">
+							<div id="player" style="height:400px;margin:0 auto;text-align:center">
+							</div>
+						</div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+						</div>
+						</div>
+					</div>
+				</div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="datatable" class="display table table-striped table-hover table-head-bg-primary">
+                            <thead>
+                                <tr>
+                                    <th>{{ _('Sự kiện') }}</th>
+                                    <th>{{ _('Chi tiết') }}</th>
+                                    <th>{{ _('Địa chỉ') }}</th>
+                                    <th>{{ _('Thời gian') }}</th>
+                                    <th>{{ _('Ảnh') }}</th>
+                                    <th>{{ _('Hành động') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Modal -->
+				<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+					<div class="modal-dialog" role="document">
+						<div class="modal-content">
+						<div class="modal-header">
+							<h5 class="modal-title" id="exampleModalLabel">Xem trực tiếp</h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body">
+							<div id="player" style="height:480px;width: 500px;margin:0 auto;text-align:center">
+							</div>
+						</div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+						</div>
+						</div>
+					</div>
+				</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block javascripts %}
+
+    <script src="/static/assets/js/setting-demo2.js"></script>
+    <script src="https://cdn.jwplayer.com/libraries/mX8w3yYs.js"></script>
+    <script >
+        $(document).ready(function() {
+            $('#datatable').DataTable({
+                "pageLength": 10,
+                "processing": true,
+                "serverSide": true,
+                "ajax": "{{ url_for('event_logs_data') }}",
+                "columns":[{"data":"3"}, {"data":"1"},{"data":"2"},{"data":"4"},{"data":"5"},{"data":null,"defaultContent":"", "searchable":false,"orderable": false}],
+                "columnDefs": [
+                    {
+                    "targets": [ 1 ],
+                    "render": function ( data, type, row ) {
+                            var obj;
+                            try {
+                                var obj = JSON.parse(row[6]);
+                            } catch(e) {
+                                //alert(e); // error in the above string (in this case, yes)!
+                            }
+                            return row[9] == "1" ? `<a href="profile.html?id=${row[7]}">${row[1]}</a> vắng mặt trong buổi tiếp dân` : row[9] == "2" ? `Vi phạm giãn cách xã hội ở khoảng cách ${obj.distance ? obj.distance : 200} cm` : row[9] == "3" ? `Lưu lượng giao thông: ${obj ? obj.car : 0} ô tô và ${obj ? obj.bike : 0} xe máy` : row[6];
+                        }
+                    },
+                    {
+                    "targets": [ 3 ],
+                    "render": function ( data, type, row ) {
+                            return moment(row[4]).utc().format("HH:mm:ss DD-MM-YYYY")
+                        }
+                    },
+                    {
+                    "targets": [ 4 ],
+                    "render": function ( data, type, row ) {
+                            return `<img style="text-align:center" class="avataUser" src="/${row[5]}" alt="${row[1]}" width=320 height=240>`
+                        }
+                    },
+                    {
+                    "targets": [ 5 ],
+                    "render": function ( data, type, row ) {
+                            return '<td> <div class="form-button-action"> <button type="button" class="btn btn-link btn-success table_item_streaming" data-toggle="modal" data-target="#exampleModal" data-original-title="Livestream" data-url="' + row[9] +'"> <i class="fa fa-camera"></i> </button> </div> </td>'
+                        }
+                    },
+                ],
+                "language": {
+                    "decimal":        "",
+                    "emptyTable":     "{{ _('Không có dữ liệu') }}",
+                    "info":           "{{ _('Hiển thị từ _START_ tới _END_ trong tổng số _TOTAL_ dữ liệu') }}",
+                    "infoEmpty":      "{{ _('Không có dữ liệu hiển thị') }}",
+                    "infoFiltered":   "{{ _('(lọc từ _MAX_ dữ liệu)') }}",
+                    "infoPostFix":    "",
+                    "thousands":      ",",
+                    "lengthMenu":     "{{ _('Hiển thị _MENU_ dữ liệu trên 1 trang') }}",
+                    "loadingRecords": "{{ _('Đang tải ...') }}",
+                    "processing":     "{{ _('Đang xử lý ...') }}",
+                    "search":         "{{ _('Tìm kiếm:') }}",
+                    "zeroRecords":    "{{ _('Không tìm thấy dữ liệu') }}",
+                    "paginate": {
+                        "first":      "<<",
+                        "last":       ">>",
+                        "next":       ">",
+                        "previous":   "<"
+                    },
+                    "aria": {
+                        "sortAscending":  "{{ _(': sắp xếp tăng dần') }}",
+                        "sortDescending": "{{ _(': sắp xếp giảm dần') }}"
+                    }
+                }
+            });
+            // Delete a record
+            $('#datatable').on('click', '.table_item_streaming', function (e) {
+                link = $(this).attr("data-url");
+                jwplayer("player").setup({
+                    file: `http://46.101.166.100:8080/app/${link}.m3u8`,
+                    height: 480,
+                });
+            });
+        });
+    </script>
+{% endblock javascripts %}
